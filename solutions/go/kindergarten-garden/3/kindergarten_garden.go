@@ -1,0 +1,113 @@
+package kindergarten
+
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
+
+type Garden struct {
+	elements map[string][]string
+}
+
+// The diagram argument starts each row with a '\n'.  This allows Go's
+// raw string literals to present diagrams in source code nicely as two
+// rows flush left, for example,
+//
+//	diagram := `
+//	VVCCGG
+//	VVCCGG`
+func NewGarden(diagram string, children []string) (*Garden, error) {
+
+	flowers := map[string]string{
+		"G": "grass",
+		"C": "clover",
+		"R": "radishes",
+		"V": "violets",
+	}
+
+	garden := Garden{elements: map[string][]string{}}
+
+	if len(diagram) == 0 || len(children) == 0 {
+		return nil, fmt.Errorf("insufficient data")
+	}
+
+	plantRows := strings.Split(diagram, "\n")[1:]
+	if len(plantRows) != 2 {
+		return nil, fmt.Errorf("wrong diagram format")
+	}
+
+	if len(plantRows[0]) != len(plantRows[1]) ||
+		len(plantRows[0])%2 != 0 {
+		return nil, fmt.Errorf("rows could be of the same length containing even number of cups")
+	}
+
+	sortedKids := make([]string, len(children))
+	copy(sortedKids, children)
+	slices.Sort(sortedKids)
+
+	for k, kidName := range sortedKids {
+
+		_, alreadyAdded := garden.elements[kidName]
+		if alreadyAdded {
+			return nil, fmt.Errorf("this kid is already added")
+		}
+
+		for _, row := range plantRows {
+
+			row = strings.TrimSpace(row)
+
+			for i := range 2 {
+
+				plant, exists := flowers[string(row[k*2+i])]
+				if exists {
+					garden.elements[kidName] = append(garden.elements[kidName], plant)
+				} else {
+					return nil, fmt.Errorf("invalid cup code")
+				}
+
+			}
+
+		}
+
+	}
+
+	return &garden, nil
+
+}
+
+func (g *Garden) Plants(child string) ([]string, bool) {
+
+	value, exists := g.elements[child]
+	if !exists {
+		return []string{}, exists
+	}
+
+	return value, exists
+
+}
+
+func recomposeThePlants(diagram string, children []string) string {
+
+	sortedChildren := make([]string, len(children))
+	copy(sortedChildren, children)
+	slices.Sort(sortedChildren)
+
+	recomposer := make(map[int]int)
+
+	slotSize := 2
+
+	for k, v := range sortedChildren {
+		recomposer[slices.Index(children, v)*slotSize] = k * slotSize
+	}
+
+	elements := make([]string, len(diagram))
+
+	for asToBe, asIs := range recomposer {
+
+		elements[asToBe] = string(diagram[asIs])
+		elements[asToBe+1] = string(diagram[asIs+1])
+	}
+
+	return strings.Join(elements, "")
+}
